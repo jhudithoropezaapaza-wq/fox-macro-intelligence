@@ -119,3 +119,71 @@ body {
 .value-neutral {
   color: var(--orange);
 }
+
+.card-section-title {
+  background: transparent;
+  border: none;
+  padding: 8px 4px 0 4px;
+  grid-column: 1 / -1;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+.evento-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.evento-item:last-child {
+  border-bottom: none;
+}
+
+.evento-fecha {
+  color: var(--text-muted);
+  min-width: 90px;
+}
+
+.evento-nombre {
+  flex: 1;
+  min-width: 180px;
+}
+
+.evento-impacto {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.impacto-high {
+  background: rgba(255,107,107,0.15);
+  color: var(--red);
+}
+
+.impacto-medium {
+  background: rgba(227,179,65,0.15);
+  color: var(--orange);
+}
+
+.impacto-low {
+  background: rgba(57,211,83,0.10);
+  color: var(--text-muted);
+}
