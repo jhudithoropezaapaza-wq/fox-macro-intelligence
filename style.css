@@ -1,0 +1,121 @@
+:root {
+  --bg: #0D1117;
+  --bg-card: #161B22;
+  --text: #E6EDF3;
+  --text-muted: #9DA7B3;
+  --green: #39D353;
+  --red: #FF6B6B;
+  --orange: #E3B341;
+  --blue: #1F6FEB;
+  --border: #30363D;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 26px;
+  color: var(--text);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.update-time {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 4px 0;
+}
+
+.panel-sesgo {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.sesgo-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 180px;
+}
+
+.sesgo-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.sesgo-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.value-up {
+  color: var(--green);
+}
+
+.value-down {
+  color: var(--red);
+}
+
+.value-neutral {
+  color: var(--orange);
+}
