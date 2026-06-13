@@ -1,7 +1,12 @@
 // FOX MACRO INTELLIGENCE - main.js
-// Módulo 1B: CoinGecko (2 min) + Yahoo Finance via allorigins (15 min)
+// Módulo 1B (v2): CoinGecko (2 min) + Yahoo Finance via proxy con respaldo (15 min)
 
-const PROXY = 'https://api.allorigins.win/raw?url=';
+// Lista de proxies CORS, en orden de preferencia. Si el primero falla, se intenta el siguiente.
+const PROXIES = [
+  url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+  url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)
+];
 
 function formatUSD(num, decimals = 0) {
   return '$' + Number(num).toLocaleString('en-US', { maximumFractionDigits: decimals });
@@ -84,11 +89,27 @@ async function loadFearGreed() {
 
 // ─── MACRO USA (cada 15 minutos) ──────────────────────────────────────────
 
+// Intenta cada proxy de la lista en orden hasta que uno responda bien.
+async function fetchWithProxies(targetUrl) {
+  let lastError;
+  for (const buildProxyUrl of PROXIES) {
+    try {
+      const proxyUrl = buildProxyUrl(targetUrl);
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      return JSON.parse(text);
+    } catch (err) {
+      lastError = err;
+      // sigue con el siguiente proxy
+    }
+  }
+  throw lastError || new Error('Todos los proxies fallaron');
+}
+
 async function fetchYahoo(symbol) {
-  const url = PROXY + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = await res.json();
+  const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + symbol;
+  const data = await fetchWithProxies(targetUrl);
   const meta = data.chart.result[0].meta;
   const price = meta.regularMarketPrice;
   const prev  = meta.chartPreviousClose;
