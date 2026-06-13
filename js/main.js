@@ -261,50 +261,45 @@ async function loadLiquidezGlobal() {
   } catch (e) { setText('wresbal', 'No disponible'); console.error('WRESBAL:', e); }
 }
 
-// ─── CALENDARIO ECONÓMICO / FINNHUB (cada 15 minutos) ─────────────────────
+// ─── CALENDARIO ECONÓMICO / ForexFactory (cada 15 minutos) ────────────────
 
-function formatEventDate(dateStr) {
-  // dateStr viene como "2026-06-15"
-  const [y, m, d] = dateStr.split('-');
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return d + ' ' + meses[Number(m) - 1];
+// El feed de ForexFactory devuelve fechas como "06-16-2026 8:30am"
+function formatFFDate(dateStr) {
+  try {
+    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const [fecha] = dateStr.split(' ');
+    const [mm, dd] = fecha.split('-');
+    return dd + ' ' + meses[Number(mm) - 1];
+  } catch (e) {
+    return dateStr;
+  }
 }
 
 async function loadCalendario() {
   try {
-    const hoy = new Date();
-    const en7dias = new Date();
-    en7dias.setDate(hoy.getDate() + 7);
+    const targetUrl = 'https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json';
+    const data = await fetchWithProxies(targetUrl);
 
-    const desde = hoy.toISOString().split('T')[0];
-    const hasta = en7dias.toISOString().split('T')[0];
-
-    const url = 'https://finnhub.io/api/v1/calendar/economic?from=' + desde + '&to=' + hasta + '&token=' + FINNHUB_API_KEY;
-    const res = await fetchWithTimeout(url, 8000);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-
-    let eventos = (data.economicCalendar || [])
-      .filter(ev => ev.country === 'US' && (ev.impact === 'high' || ev.impact === 'medium'))
-      .sort((a, b) => new Date(a.time) - new Date(b.time))
+    let eventos = (data || [])
+      .filter(ev => ev.country === 'USD' && (ev.impact === 'High' || ev.impact === 'Medium'))
       .slice(0, 8);
 
     const cont = document.getElementById('calendario-lista');
 
     if (eventos.length === 0) {
-      cont.textContent = 'No hay eventos de alto/medio impacto en los próximos 7 días.';
+      cont.textContent = 'No hay eventos de alto/medio impacto en los próximos días (USD).';
       return;
     }
 
     cont.innerHTML = '';
     eventos.forEach(ev => {
-      const fecha = ev.time ? ev.time.split(' ')[0] : '';
       const item = document.createElement('div');
       item.className = 'evento-item';
+      const impactoClass = ev.impact === 'High' ? 'high' : 'medium';
       item.innerHTML =
-        '<span class="evento-fecha">' + formatEventDate(fecha) + '</span>' +
-        '<span class="evento-nombre">' + (ev.event || 'Evento') + '</span>' +
-        '<span class="evento-impacto impacto-' + ev.impact + '">' + ev.impact.toUpperCase() + '</span>';
+        '<span class="evento-fecha">' + formatFFDate(ev.date) + '</span>' +
+        '<span class="evento-nombre">' + (ev.title || 'Evento') + '</span>' +
+        '<span class="evento-impacto impacto-' + impactoClass + '">' + ev.impact.toUpperCase() + '</span>';
       cont.appendChild(item);
     });
   } catch (err) {
