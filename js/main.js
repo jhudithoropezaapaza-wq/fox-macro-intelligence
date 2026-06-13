@@ -11,6 +11,9 @@ const PROXIES = [
 // Clave gratuita de FRED (St. Louis Fed) - sección 3.6.1 del documento maestro
 const FRED_API_KEY = 'b74441693f73743d9d5100933b7042d7';
 
+// Clave gratuita de Finnhub - usada para el calendario económico
+const FINNHUB_API_KEY = 'd8msqnpr01qp7ubne80gd8msqnpr01qp7ubne810';
+
 function formatUSD(num, decimals = 0) {
   return '$' + Number(num).toLocaleString('en-US', { maximumFractionDigits: decimals });
 }
@@ -258,6 +261,58 @@ async function loadLiquidezGlobal() {
   } catch (e) { setText('wresbal', 'No disponible'); console.error('WRESBAL:', e); }
 }
 
+// ─── CALENDARIO ECONÓMICO / FINNHUB (cada 15 minutos) ─────────────────────
+
+function formatEventDate(dateStr) {
+  // dateStr viene como "2026-06-15"
+  const [y, m, d] = dateStr.split('-');
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d + ' ' + meses[Number(m) - 1];
+}
+
+async function loadCalendario() {
+  try {
+    const hoy = new Date();
+    const en7dias = new Date();
+    en7dias.setDate(hoy.getDate() + 7);
+
+    const desde = hoy.toISOString().split('T')[0];
+    const hasta = en7dias.toISOString().split('T')[0];
+
+    const url = 'https://finnhub.io/api/v1/calendar/economic?from=' + desde + '&to=' + hasta + '&token=' + FINNHUB_API_KEY;
+    const res = await fetchWithTimeout(url, 8000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    let eventos = (data.economicCalendar || [])
+      .filter(ev => ev.country === 'US' && (ev.impact === 'high' || ev.impact === 'medium'))
+      .sort((a, b) => new Date(a.time) - new Date(b.time))
+      .slice(0, 8);
+
+    const cont = document.getElementById('calendario-lista');
+
+    if (eventos.length === 0) {
+      cont.textContent = 'No hay eventos de alto/medio impacto en los próximos 7 días.';
+      return;
+    }
+
+    cont.innerHTML = '';
+    eventos.forEach(ev => {
+      const fecha = ev.time ? ev.time.split(' ')[0] : '';
+      const item = document.createElement('div');
+      item.className = 'evento-item';
+      item.innerHTML =
+        '<span class="evento-fecha">' + formatEventDate(fecha) + '</span>' +
+        '<span class="evento-nombre">' + (ev.event || 'Evento') + '</span>' +
+        '<span class="evento-impacto impacto-' + ev.impact + '">' + ev.impact.toUpperCase() + '</span>';
+      cont.appendChild(item);
+    });
+  } catch (err) {
+    setText('calendario-lista', 'No disponible');
+    console.error('Calendario Económico:', err);
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -279,7 +334,8 @@ async function initMacro() {
   await Promise.all([
     safeRun(loadMacroUSA, 'loadMacroUSA'),
     safeRun(loadYields, 'loadYields'),
-    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal')
+    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal'),
+    safeRun(loadCalendario, 'loadCalendario')
   ]);
 }
 
