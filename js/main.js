@@ -201,6 +201,51 @@ async function loadYields() {
   }
 }
 
+// ─── LIQUIDEZ GLOBAL / FRED (cada 15 minutos) ─────────────────────────────
+
+function formatTrillions(millions) {
+  const trillions = millions / 1_000_000;
+  return '$' + trillions.toFixed(2) + ' T';
+}
+
+function formatFREDDate(dateStr) {
+  // dateStr viene como "2026-06-04"
+  const [y, m, d] = dateStr.split('-');
+  return 'Dato al ' + d + '/' + m + '/' + y;
+}
+
+async function fetchFREDLatest(seriesId) {
+  const targetUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=' + seriesId +
+    '&api_key=' + FRED_API_KEY + '&file_type=json&limit=1&sort_order=desc';
+  const data = await fetchWithProxies(targetUrl);
+  const obs = data.observations[0];
+  return { value: Number(obs.value), date: obs.date };
+}
+
+async function loadLiquidezGlobal() {
+  // Balance de la Fed (WALCL) - en millones de USD
+  try {
+    const r = await fetchFREDLatest('WALCL');
+    setText('walcl', formatTrillions(r.value));
+    setText('walcl-date', formatFREDDate(r.date));
+  } catch (e) { setText('walcl', 'No disponible'); console.error('WALCL:', e); }
+
+  // M2 - en miles de millones de USD (Billions) -> convertir a Trillions dividiendo entre 1000
+  try {
+    const r = await fetchFREDLatest('M2SL');
+    const trillions = r.value / 1000;
+    setText('m2', '$' + trillions.toFixed(2) + ' T');
+    setText('m2-date', formatFREDDate(r.date));
+  } catch (e) { setText('m2', 'No disponible'); console.error('M2SL:', e); }
+
+  // Reservas Bancarias (WRESBAL) - en millones de USD
+  try {
+    const r = await fetchFREDLatest('WRESBAL');
+    setText('wresbal', formatTrillions(r.value));
+    setText('wresbal-date', formatFREDDate(r.date));
+  } catch (e) { setText('wresbal', 'No disponible'); console.error('WRESBAL:', e); }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -209,7 +254,7 @@ async function initCripto() {
 }
 
 async function initMacro() {
-  await Promise.all([loadMacroUSA(), loadYields()]);
+  await Promise.all([loadMacroUSA(), loadYields(), loadLiquidezGlobal()]);
 }
 
 async function init() {
