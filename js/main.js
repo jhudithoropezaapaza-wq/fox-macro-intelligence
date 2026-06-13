@@ -8,6 +8,9 @@ const PROXIES = [
   url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url)
 ];
 
+// Clave gratuita de FRED (St. Louis Fed) - sección 3.6.1 del documento maestro
+const FRED_API_KEY = 'b74441693f73743d9d5100933b7042d7';
+
 function formatUSD(num, decimals = 0) {
   return '$' + Number(num).toLocaleString('en-US', { maximumFractionDigits: decimals });
 }
@@ -161,6 +164,43 @@ async function loadMacroUSA() {
   } catch (e) { setText('oil', 'No disponible'); console.error('Oil:', e); }
 }
 
+// ─── YIELDS USA / FRED (cada 15 minutos) ──────────────────────────────────
+
+async function fetchFRED(seriesId) {
+  const targetUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=' + seriesId +
+    '&api_key=' + FRED_API_KEY + '&file_type=json&limit=1&sort_order=desc';
+  const data = await fetchWithProxies(targetUrl);
+  const obs = data.observations[0];
+  return Number(obs.value);
+}
+
+async function loadYields() {
+  let y10 = null;
+  let y2 = null;
+
+  // DGS10
+  try {
+    y10 = await fetchFRED('DGS10');
+    setText('yield10', y10.toFixed(2) + '%');
+  } catch (e) { setText('yield10', 'No disponible'); console.error('DGS10:', e); }
+
+  // DGS2
+  try {
+    y2 = await fetchFRED('DGS2');
+    setText('yield2', y2.toFixed(2) + '%');
+  } catch (e) { setText('yield2', 'No disponible'); console.error('DGS2:', e); }
+
+  // Spread 10-2
+  if (y10 !== null && y2 !== null) {
+    const spread = y10 - y2;
+    setText('spread102', (spread >= 0 ? '+' : '') + spread.toFixed(2) + ' pp');
+    setValueColor('spread102', spread);
+    setText('spread102-label', spread < 0 ? '⚠️ Curva invertida' : 'Curva normal');
+  } else {
+    setText('spread102', 'No disponible');
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -169,7 +209,7 @@ async function initCripto() {
 }
 
 async function initMacro() {
-  await loadMacroUSA();
+  await Promise.all([loadMacroUSA(), loadYields()]);
 }
 
 async function init() {
