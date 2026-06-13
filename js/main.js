@@ -92,13 +92,25 @@ async function loadFearGreed() {
 
 // ─── MACRO USA (cada 15 minutos) ──────────────────────────────────────────
 
-// Intenta cada proxy de la lista en orden hasta que uno responda bien.
+// Hace un fetch con límite de tiempo. Si tarda más de `timeoutMs`, lo cancela y lanza error.
+async function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Intenta cada proxy de la lista en orden hasta que uno responda bien (con timeout de 8s cada uno).
 async function fetchWithProxies(targetUrl) {
   let lastError;
   for (const buildProxyUrl of PROXIES) {
     try {
       const proxyUrl = buildProxyUrl(targetUrl);
-      const res = await fetch(proxyUrl);
+      const res = await fetchWithTimeout(proxyUrl, 8000);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       return JSON.parse(text);
@@ -253,8 +265,22 @@ async function initCripto() {
   setUpdateTime();
 }
 
+// Ejecuta una función async y, si falla por completo (error no capturado internamente),
+// lo registra en consola pero no detiene las demás tareas en paralelo.
+async function safeRun(fn, label) {
+  try {
+    await fn();
+  } catch (err) {
+    console.error('Fallo no controlado en ' + label + ':', err);
+  }
+}
+
 async function initMacro() {
-  await Promise.all([loadMacroUSA(), loadYields(), loadLiquidezGlobal()]);
+  await Promise.all([
+    safeRun(loadMacroUSA, 'loadMacroUSA'),
+    safeRun(loadYields, 'loadYields'),
+    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal')
+  ]);
 }
 
 async function init() {
