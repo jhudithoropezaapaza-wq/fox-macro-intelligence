@@ -68,11 +68,21 @@ async function loadCoinGeckoGlobal() {
     const res = await fetch('https://api.coingecko.com/api/v3/global');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
+
     setText('btc-dominance', data.data.market_cap_percentage.btc.toFixed(2) + '%');
     setText('market-cap-total', formatUSD(data.data.total_market_cap.usd));
+
+    // Mercado Cripto Amplio
+    const mcapChange = data.data.market_cap_change_percentage_24h_usd;
+    setText('mcap-change', (mcapChange >= 0 ? '+' : '') + mcapChange.toFixed(2) + '%');
+    setValueColor('mcap-change', mcapChange);
+
+    setText('volume-total', formatUSD(data.data.total_volume.usd));
   } catch (err) {
     setText('btc-dominance', 'No disponible');
     setText('market-cap-total', 'No disponible');
+    setText('mcap-change', 'No disponible');
+    setText('volume-total', 'No disponible');
     console.error('CoinGecko Global:', err);
   }
 }
@@ -341,6 +351,32 @@ async function loadOnChain() {
   }
 }
 
+async function loadTopCoins() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1&sparkline=false');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    const cont = document.getElementById('top-coins-lista');
+    cont.innerHTML = '';
+
+    data.forEach(coin => {
+      const change = coin.price_change_percentage_24h || 0;
+      const item = document.createElement('div');
+      item.className = 'lista-item';
+      item.innerHTML =
+        '<span class="nombre">' + coin.name + ' (' + coin.symbol.toUpperCase() + ')</span>' +
+        '<span class="precio">' + formatUSD(coin.current_price, coin.current_price < 1 ? 4 : 2) + '</span>' +
+        '<span class="cambio ' + (change >= 0 ? 'value-up' : 'value-down') + '">' +
+          (change >= 0 ? '+' : '') + change.toFixed(2) + '%</span>';
+      cont.appendChild(item);
+    });
+  } catch (err) {
+    setText('top-coins-lista', 'No disponible');
+    console.error('Top Coins:', err);
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -348,7 +384,8 @@ async function initCripto() {
     safeRun(loadBTCPrice, 'loadBTCPrice'),
     safeRun(loadCoinGeckoGlobal, 'loadCoinGeckoGlobal'),
     safeRun(loadFearGreed, 'loadFearGreed'),
-    safeRun(loadDerivados, 'loadDerivados')
+    safeRun(loadDerivados, 'loadDerivados'),
+    safeRun(loadTopCoins, 'loadTopCoins')
   ]);
   setUpdateTime();
 }
