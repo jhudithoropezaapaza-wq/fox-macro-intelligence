@@ -14,6 +14,21 @@ const FRED_API_KEY = 'b74441693f73743d9d5100933b7042d7';
 // Clave gratuita de Finnhub - usada para el calendario económico
 const FINNHUB_API_KEY = 'd8msqnpr01qp7ubne80gd8msqnpr01qp7ubne810';
 
+// Almacén compartido: aquí guardamos valores ya calculados de otros bloques
+// para que el Módulo 10 (indicadores compuestos) y el Módulo 14 (sesgos) los usen
+// sin tener que volver a pedirlos a las APIs.
+const FOX = {
+  btcChange: null,
+  ndxChange: null,
+  vixChange: null,
+  dxyChange: null,
+  goldChange: null,
+  yield10: null,
+  yield2: null,
+  walclPrev: null,
+  walclCurr: null
+};
+
 function formatUSD(num, decimals = 0) {
   return '$' + Number(num).toLocaleString('en-US', { maximumFractionDigits: decimals });
 }
@@ -57,6 +72,7 @@ async function loadBTCPrice() {
     setText('btc-price', formatUSD(price));
     setText('btc-change', (change >= 0 ? '▲ +' : '▼ ') + change.toFixed(2) + '% (24h)');
     setValueColor('btc-price', change);
+    FOX.btcChange = change;
   } catch (err) {
     setText('btc-price', 'No disponible');
     console.error('BTC Price:', err);
@@ -162,24 +178,28 @@ async function loadMacroUSA() {
   try {
     const d = await fetchYahoo('%5ENDX');
     setMacroCard('ndx', 'ndx-change', d.price, d.change, '', 2);
+    FOX.ndxChange = d.change;
   } catch (e) { setText('ndx', 'No disponible'); console.error('NDX:', e); }
 
   // VIX
   try {
     const d = await fetchYahoo('%5EVIX');
     setMacroCard('vix', 'vix-change', d.price, d.change, '', 2);
+    FOX.vixChange = d.change;
   } catch (e) { setText('vix', 'No disponible'); console.error('VIX:', e); }
 
   // DXY
   try {
     const d = await fetchYahoo('DX-Y.NYB');
     setMacroCard('dxy', 'dxy-change', d.price, d.change, '', 3);
+    FOX.dxyChange = d.change;
   } catch (e) { setText('dxy', 'No disponible'); console.error('DXY:', e); }
 
   // Oro
   try {
     const d = await fetchYahoo('GC%3DF');
     setMacroCard('gold', 'gold-change', d.price, d.change, '$', 2);
+    FOX.goldChange = d.change;
   } catch (e) { setText('gold', 'No disponible'); console.error('Gold:', e); }
 
   // Petróleo WTI
@@ -245,6 +265,8 @@ async function loadYields() {
     setText('spread102', (spread >= 0 ? '+' : '') + spread.toFixed(2) + ' pp');
     setValueColor('spread102', spread);
     setText('spread102-label', spread < 0 ? '⚠️ Curva invertida' : 'Curva normal');
+    FOX.yield10 = y10;
+    FOX.yield2 = y2;
   } else {
     setText('spread102', 'No disponible');
   }
@@ -271,12 +293,23 @@ async function fetchFREDLatest(seriesId) {
   return { value: Number(obs.value), date: obs.date };
 }
 
+// Devuelve los 2 valores más recientes de una serie, para comparar tendencia (actual vs anterior)
+async function fetchFREDTrend(seriesId) {
+  const targetUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=' + seriesId +
+    '&api_key=' + FRED_API_KEY + '&file_type=json&limit=2&sort_order=desc';
+  const data = await fetchWithProxies(targetUrl);
+  const [curr, prev] = data.observations;
+  return { current: Number(curr.value), previous: Number(prev.value), date: curr.date };
+}
+
 async function loadLiquidezGlobal() {
   // Balance de la Fed (WALCL) - en millones de USD
   try {
-    const r = await fetchFREDLatest('WALCL');
-    setText('walcl', formatTrillions(r.value));
+    const r = await fetchFREDTrend('WALCL');
+    setText('walcl', formatTrillions(r.current));
     setText('walcl-date', formatFREDDate(r.date));
+    FOX.walclCurr = r.current;
+    FOX.walclPrev = r.previous;
   } catch (e) { setText('walcl', 'No disponible'); console.error('WALCL:', e); }
 
   // M2 - en miles de millones de USD (Billions) -> convertir a Trillions dividiendo entre 1000
@@ -477,6 +510,90 @@ async function loadTopMoversBinance() {
   }
 }
 
+// ─── INDICADORES COMPUESTOS (cálculo, sin API nueva) ──────────────────────
+
+function calcularIndicadoresCompuestos() {
+  // 1. Risk-On / Risk-Off
+  // Si VIX sube + DXY sube + Oro sube => mercado defensivo (Risk-Off)
+  // Si VIX baja + DXY baja + Oro baja => mercado de apetito por riesgo (Risk-On)
+  if (FOX.vixChange !== null && FOX.dxyChange !== null && FOX.goldChange !== null) {
+    const senales = [FOX.vixChange, FOX.dxyChange, FOX.goldChange];
+    const positivas = senales.filter(s => s > 0).length;
+    const negativas = senales.filter(s => s < 0).length;
+
+    let texto, sub, colorRef;
+    if (positivas >= 2) {
+      texto = 'Risk-Off';
+      sub = 'VIX/DXY/Oro al alza → mercado defensivo';
+      colorRef = -1;
+    } else if (negativas >= 2) {
+      texto = 'Risk-On';
+      sub = 'VIX/DXY/Oro a la baja → apetito por riesgo';
+      colorRef = 1;
+    } else {
+      texto = 'Mixto';
+      sub = 'Sin señal clara entre VIX, DXY y Oro';
+      colorRef = 0;
+    }
+    setText('risk-indicator', texto);
+    setText('risk-indicator-sub', sub);
+    setValueColor('risk-indicator', colorRef);
+  } else {
+    setText('risk-indicator', 'No disponible');
+  }
+
+  // 2. BTC vs Nasdaq (correlación direccional del día)
+  if (FOX.btcChange !== null && FOX.ndxChange !== null) {
+    const mismaDireccion = (FOX.btcChange >= 0) === (FOX.ndxChange >= 0);
+    let texto, sub, colorRef;
+    if (mismaDireccion) {
+      texto = 'Acoplado';
+      sub = 'BTC y Nasdaq se mueven en la misma dirección hoy';
+      colorRef = FOX.btcChange >= 0 ? 1 : -1;
+    } else {
+      texto = 'Desacoplado';
+      sub = 'BTC y Nasdaq se mueven en direcciones opuestas hoy';
+      colorRef = 0;
+    }
+    setText('btc-ndx-corr', texto);
+    setText('btc-ndx-corr-sub', sub);
+    setValueColor('btc-ndx-corr', colorRef);
+  } else {
+    setText('btc-ndx-corr', 'No disponible');
+  }
+
+  // 3. Liquidez Neta (tendencia)
+  // Combina la tendencia del balance de la Fed (WALCL) con el spread 10-2
+  if (FOX.walclCurr !== null && FOX.walclPrev !== null && FOX.yield10 !== null && FOX.yield2 !== null) {
+    const walclTrend = FOX.walclCurr - FOX.walclPrev; // positivo = expansión, negativo = contracción
+    const spread = FOX.yield10 - FOX.yield2;
+
+    let texto, sub, colorRef;
+    if (walclTrend > 0 && spread >= 0) {
+      texto = 'Expansión';
+      sub = 'Balance de la Fed creciendo + curva normal';
+      colorRef = 1;
+    } else if (walclTrend < 0 && spread < 0) {
+      texto = 'Contracción';
+      sub = 'Balance de la Fed cayendo + curva invertida';
+      colorRef = -1;
+    } else if (walclTrend > 0) {
+      texto = 'Expansión leve';
+      sub = 'Balance de la Fed creciendo, curva invertida';
+      colorRef = 0;
+    } else {
+      texto = 'Contracción leve';
+      sub = 'Balance de la Fed cayendo, curva normal';
+      colorRef = 0;
+    }
+    setText('liquidez-neta', texto);
+    setText('liquidez-neta-sub', sub);
+    setValueColor('liquidez-neta', colorRef);
+  } else {
+    setText('liquidez-neta', 'No disponible');
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -512,13 +629,20 @@ async function initMacro() {
 
 async function init() {
   await Promise.all([initCripto(), initMacro()]);
+  calcularIndicadoresCompuestos();
 }
 
 // Primera carga
 init();
 
 // Cripto: actualiza cada 2 minutos
-setInterval(initCripto, 2 * 60 * 1000);
+setInterval(async () => {
+  await initCripto();
+  calcularIndicadoresCompuestos();
+}, 2 * 60 * 1000);
 
 // Macro USA: actualiza cada 15 minutos
-setInterval(initMacro, 15 * 60 * 1000);
+setInterval(async () => {
+  await initMacro();
+  calcularIndicadoresCompuestos();
+}, 15 * 60 * 1000);
