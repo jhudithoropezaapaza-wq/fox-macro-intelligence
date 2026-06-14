@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mercado Completo — FOX MACRO INTELLIGENCE</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .mercado-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto 16px auto;
+  }
+  .volver-link {
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .volver-link:hover { text-decoration: underline; }
+
+  .controles {
+    display: flex;
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto 14px auto;
+    flex-wrap: wrap;
+  }
+  .controles input, .controles select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .controles input { flex: 1; min-width: 150px; }
+
+  .tabla-wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 12px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    background: #1c2330;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+  }
+  th:hover { color: var(--text); }
+  tr { border-bottom: 1px solid var(--border); }
+  tr:last-child { border-bottom: none; }
+  tr:hover { background: rgba(255,255,255,0.02); }
+
+  .contador {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>⚡ FOX MACRO INTELLIGENCE</h1>
+  <p class="subtitle">Mercado Completo — Todas las monedas USDT (Binance)</p>
+  <p class="update-time" id="update-time">Cargando...</p>
+</header>
+
+<div class="mercado-header">
+  <a href="index.html" class="volver-link">← Volver al Dashboard</a>
+  <span class="contador" id="contador"></span>
+</div>
+
+<div class="controles">
+  <input type="text" id="filtro" placeholder="Buscar moneda (ej. BTC, ETH, SOL)...">
+  <select id="orden">
+    <option value="change_desc">Mayor variación 24h ▼</option>
+    <option value="change_asc">Menor variación 24h ▲</option>
+    <option value="name_asc">Nombre A-Z</option>
+    <option value="volume_desc">Mayor volumen</option>
+  </select>
+</div>
+
+<div class="tabla-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Moneda</th>
+        <th>Precio (USD)</th>
+        <th>Cambio 24h</th>
+        <th>Volumen 24h</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-body">
+      <tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+let allData = [];
+
+function formatUSD(num, decimals = 2) {
+  return '$' + Number(num).toLocaleString('en-US', { maximumFractionDigits: decimals });
+}
+
+function setUpdateTime() {
+  const now = new Date();
+  const formatted = now.toLocaleString('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+  document.getElementById('update-time').textContent = 'Última actualización: ' + formatted;
+}
+
+function render() {
+  const filtro = document.getElementById('filtro').value.toUpperCase().trim();
+  const orden = document.getElementById('orden').value;
+
+  let filtrado = allData.filter(d => d.symbol.replace('USDT', '').includes(filtro));
+
+  switch (orden) {
+    case 'change_desc':
+      filtrado.sort((a, b) => Number(b.priceChangePercent) - Number(a.priceChangePercent));
+      break;
+    case 'change_asc':
+      filtrado.sort((a, b) => Number(a.priceChangePercent) - Number(b.priceChangePercent));
+      break;
+    case 'name_asc':
+      filtrado.sort((a, b) => a.symbol.localeCompare(b.symbol));
+      break;
+    case 'volume_desc':
+      filtrado.sort((a, b) => Number(b.quoteVolume) - Number(a.quoteVolume));
+      break;
+  }
+
+  const tbody = document.getElementById('tabla-body');
+  tbody.innerHTML = '';
+
+  filtrado.forEach(d => {
+    const change = Number(d.priceChangePercent);
+    const price = Number(d.lastPrice);
+    const volume = Number(d.quoteVolume);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.symbol.replace('USDT', '') + '</td>' +
+      '<td>' + formatUSD(price, price < 1 ? 6 : 2) + '</td>' +
+      '<td class="' + (change >= 0 ? 'value-up' : 'value-down') + '">' + (change >= 0 ? '+' : '') + change.toFixed(2) + '%</td>' +
+      '<td>' + formatUSD(volume, 0) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('contador').textContent = filtrado.length + ' monedas';
+}
+
+async function loadData() {
+  try {
+    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    allData = data.filter(d =>
+      d.symbol.endsWith('USDT') &&
+      !d.symbol.includes('UPUSDT') &&
+      !d.symbol.includes('DOWNUSDT') &&
+      Number(d.quoteVolume) > 10000
+    );
+
+    render();
+    setUpdateTime();
+  } catch (err) {
+    document.getElementById('tabla-body').innerHTML =
+      '<tr><td colspan="4" style="text-align:center; padding:20px;">No disponible: ' + err.message + '</td></tr>';
+    console.error('Mercado completo:', err);
+  }
+}
+
+document.getElementById('filtro').addEventListener('input', render);
+document.getElementById('orden').addEventListener('change', render);
+
+loadData();
+setInterval(loadData, 2 * 60 * 1000); // actualiza cada 2 minutos
+</script>
+
+</body>
+</html>
