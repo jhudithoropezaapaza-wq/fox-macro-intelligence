@@ -141,3 +141,35 @@ body {
   grid-column: 1 / -1;
   padding: 8px;
 }
+
+.lista-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.lista-item:last-child {
+  border-bottom: none;
+}
+
+.lista-item .nombre {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.lista-item .precio {
+  min-width: 100px;
+  text-align: right;
+}
+
+.lista-item .cambio {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 700;
+}
