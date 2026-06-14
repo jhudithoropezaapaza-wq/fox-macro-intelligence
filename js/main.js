@@ -377,6 +377,51 @@ async function loadTopCoins() {
   }
 }
 
+function renderListaMonedas(containerId, items) {
+  const cont = document.getElementById(containerId);
+  cont.innerHTML = '';
+  items.forEach(item => {
+    const change = Number(item.priceChangePercent);
+    const price = Number(item.lastPrice);
+    const div = document.createElement('div');
+    div.className = 'lista-item';
+    div.innerHTML =
+      '<span class="nombre">' + item.symbol.replace('USDT', '') + '</span>' +
+      '<span class="precio">' + formatUSD(price, price < 1 ? 6 : 2) + '</span>' +
+      '<span class="cambio ' + (change >= 0 ? 'value-up' : 'value-down') + '">' +
+        (change >= 0 ? '+' : '') + change.toFixed(2) + '%</span>';
+    cont.appendChild(div);
+  });
+}
+
+async function loadTopMoversBinance() {
+  try {
+    const res = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/24hr', 10000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    // Filtrar solo pares USDT, con volumen significativo para evitar monedas ilíquidas
+    const usdtPairs = data.filter(d =>
+      d.symbol.endsWith('USDT') &&
+      !d.symbol.includes('UPUSDT') &&
+      !d.symbol.includes('DOWNUSDT') &&
+      Number(d.quoteVolume) > 100000
+    );
+
+    const ordenadas = [...usdtPairs].sort((a, b) => Number(b.priceChangePercent) - Number(a.priceChangePercent));
+
+    const subidas = ordenadas.slice(0, 30);
+    const bajadas = ordenadas.slice(-30).reverse();
+
+    renderListaMonedas('top-subidas-lista', subidas);
+    renderListaMonedas('top-bajadas-lista', bajadas);
+  } catch (err) {
+    setText('top-subidas-lista', 'No disponible');
+    setText('top-bajadas-lista', 'No disponible');
+    console.error('Top Movers Binance:', err);
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -385,7 +430,8 @@ async function initCripto() {
     safeRun(loadCoinGeckoGlobal, 'loadCoinGeckoGlobal'),
     safeRun(loadFearGreed, 'loadFearGreed'),
     safeRun(loadDerivados, 'loadDerivados'),
-    safeRun(loadTopCoins, 'loadTopCoins')
+    safeRun(loadTopCoins, 'loadTopCoins'),
+    safeRun(loadTopMoversBinance, 'loadTopMoversBinance')
   ]);
   setUpdateTime();
 }
