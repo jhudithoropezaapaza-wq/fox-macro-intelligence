@@ -187,6 +187,30 @@ async function loadMacroUSA() {
     const d = await fetchYahoo('CL%3DF');
     setMacroCard('oil', 'oil-change', d.price, d.change, '$', 2);
   } catch (e) { setText('oil', 'No disponible'); console.error('Oil:', e); }
+
+  // Coinbase (COIN)
+  try {
+    const d = await fetchYahoo('COIN');
+    setMacroCard('coin-price', 'coin-change', d.price, d.change, '$', 2);
+  } catch (e) { setText('coin-price', 'No disponible'); console.error('COIN:', e); }
+
+  // Strategy / MicroStrategy (MSTR)
+  try {
+    const d = await fetchYahoo('MSTR');
+    setMacroCard('mstr-price', 'mstr-change', d.price, d.change, '$', 2);
+  } catch (e) { setText('mstr-price', 'No disponible'); console.error('MSTR:', e); }
+
+  // NVIDIA (NVDA)
+  try {
+    const d = await fetchYahoo('NVDA');
+    setMacroCard('nvda-price', 'nvda-change', d.price, d.change, '$', 2);
+  } catch (e) { setText('nvda-price', 'No disponible'); console.error('NVDA:', e); }
+
+  // Tesla (TSLA)
+  try {
+    const d = await fetchYahoo('TSLA');
+    setMacroCard('tsla-price', 'tsla-change', d.price, d.change, '$', 2);
+  } catch (e) { setText('tsla-price', 'No disponible'); console.error('TSLA:', e); }
 }
 
 // ─── YIELDS USA / FRED (cada 15 minutos) ──────────────────────────────────
