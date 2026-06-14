@@ -173,3 +173,28 @@ body {
   text-align: right;
   font-weight: 700;
 }
+
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ver-todas-link {
+  color: var(--blue);
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ver-todas-link:hover {
+  text-decoration: underline;
+}
+
+.lista-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+}
