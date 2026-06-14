@@ -337,6 +337,37 @@ async function loadDerivados() {
     setText('open-interest', 'No disponible');
     console.error('Deribit OI:', err);
   }
+
+  // Long/Short Ratio (Binance Futures)
+  try {
+    const res = await fetchWithTimeout('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1', 8000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const latest = data[data.length - 1];
+
+    const ratio = Number(latest.longShortRatio);
+    const longAcc = Number(latest.longAccount) * 100;
+    const shortAcc = Number(latest.shortAccount) * 100;
+
+    setText('long-short-ratio', ratio.toFixed(2));
+    setText('long-pct', longAcc.toFixed(1) + '%');
+    setText('short-pct', shortAcc.toFixed(1) + '%');
+
+    setValueColor('long-short-ratio', ratio - 1); // > 1 = más largos, < 1 = más cortos
+    setValueColor('long-pct', longAcc - 50);
+    setValueColor('short-pct', 50 - shortAcc);
+
+    let label;
+    if (ratio > 1.5) label = 'Mayoría apostando al alza (posible sobrecompra)';
+    else if (ratio < 0.7) label = 'Mayoría apostando a la baja (posible sobreventa)';
+    else label = 'Posicionamiento equilibrado';
+    setText('long-short-label', label);
+  } catch (err) {
+    setText('long-short-ratio', 'No disponible');
+    setText('long-pct', 'No disponible');
+    setText('short-pct', 'No disponible');
+    console.error('Long/Short Ratio:', err);
+  }
 }
 
 // ─── ON-CHAIN BTC / Blockchain.com (cada 15 minutos) ──────────────────────
