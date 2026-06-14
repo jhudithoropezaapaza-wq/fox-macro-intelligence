@@ -305,6 +305,42 @@ async function loadDerivados() {
   }
 }
 
+// ─── ON-CHAIN BTC / Blockchain.com (cada 15 minutos) ──────────────────────
+
+function formatHashRate(ghs) {
+  // Blockchain.info devuelve hash_rate en GH/s (giga hashes por segundo)
+  const ehs = ghs / 1_000_000; // GH/s -> EH/s (exa hashes)
+  return ehs.toFixed(1) + ' EH/s';
+}
+
+function formatDifficulty(diff) {
+  const trillions = diff / 1_000_000_000_000;
+  return trillions.toFixed(2) + ' T';
+}
+
+async function loadOnChain() {
+  try {
+    const targetUrl = 'https://api.blockchain.info/stats?format=json';
+    const data = await fetchWithProxies(targetUrl);
+
+    setText('hash-rate', formatHashRate(data.hash_rate));
+    setText('difficulty', formatDifficulty(data.difficulty));
+    setText('tx-count', formatNum(data.n_tx, 0));
+
+    const blocksLeft = data.nextretarget - data.n_blocks_total;
+    const minutesLeft = blocksLeft * (data.minutes_between_blocks || 10);
+    const daysLeft = (minutesLeft / 60 / 24).toFixed(1);
+    setText('next-retarget', blocksLeft + ' bloques');
+    setText('next-retarget-sub', '≈ ' + daysLeft + ' días restantes');
+  } catch (err) {
+    setText('hash-rate', 'No disponible');
+    setText('difficulty', 'No disponible');
+    setText('tx-count', 'No disponible');
+    setText('next-retarget', 'No disponible');
+    console.error('On-Chain Blockchain.com:', err);
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -331,7 +367,8 @@ async function initMacro() {
   await Promise.all([
     safeRun(loadMacroUSA, 'loadMacroUSA'),
     safeRun(loadYields, 'loadYields'),
-    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal')
+    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal'),
+    safeRun(loadOnChain, 'loadOnChain')
   ]);
 }
 
