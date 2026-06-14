@@ -261,53 +261,6 @@ async function loadLiquidezGlobal() {
   } catch (e) { setText('wresbal', 'No disponible'); console.error('WRESBAL:', e); }
 }
 
-// ─── CALENDARIO ECONÓMICO / ForexFactory (cada 15 minutos) ────────────────
-
-// El feed de ForexFactory devuelve fechas como "06-16-2026 8:30am"
-function formatFFDate(dateStr) {
-  try {
-    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const [fecha] = dateStr.split(' ');
-    const [mm, dd] = fecha.split('-');
-    return dd + ' ' + meses[Number(mm) - 1];
-  } catch (e) {
-    return dateStr;
-  }
-}
-
-async function loadCalendario() {
-  try {
-    const targetUrl = 'https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json';
-    const data = await fetchWithProxies(targetUrl);
-
-    let eventos = (data || [])
-      .filter(ev => ev.country === 'USD' && (ev.impact === 'High' || ev.impact === 'Medium'))
-      .slice(0, 8);
-
-    const cont = document.getElementById('calendario-lista');
-
-    if (eventos.length === 0) {
-      cont.textContent = 'No hay eventos de alto/medio impacto en los próximos días (USD).';
-      return;
-    }
-
-    cont.innerHTML = '';
-    eventos.forEach(ev => {
-      const item = document.createElement('div');
-      item.className = 'evento-item';
-      const impactoClass = ev.impact === 'High' ? 'high' : 'medium';
-      item.innerHTML =
-        '<span class="evento-fecha">' + formatFFDate(ev.date) + '</span>' +
-        '<span class="evento-nombre">' + (ev.title || 'Evento') + '</span>' +
-        '<span class="evento-impacto impacto-' + impactoClass + '">' + ev.impact.toUpperCase() + '</span>';
-      cont.appendChild(item);
-    });
-  } catch (err) {
-    setText('calendario-lista', 'No disponible');
-    console.error('Calendario Económico:', err);
-  }
-}
-
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -329,8 +282,7 @@ async function initMacro() {
   await Promise.all([
     safeRun(loadMacroUSA, 'loadMacroUSA'),
     safeRun(loadYields, 'loadYields'),
-    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal'),
-    safeRun(loadCalendario, 'loadCalendario')
+    safeRun(loadLiquidezGlobal, 'loadLiquidezGlobal')
   ]);
 }
 
