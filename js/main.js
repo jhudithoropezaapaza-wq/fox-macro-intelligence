@@ -261,10 +261,59 @@ async function loadLiquidezGlobal() {
   } catch (e) { setText('wresbal', 'No disponible'); console.error('WRESBAL:', e); }
 }
 
+// ─── DERIVADOS BTC (cada 2 minutos) ───────────────────────────────────────
+
+async function loadDerivados() {
+  // Funding Rate (Binance)
+  try {
+    const res = await fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', 8000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    const fundingRate = Number(data.lastFundingRate) * 100; // viene como fracción, ej. 0.0001146
+    setText('funding-rate', fundingRate.toFixed(4) + '%');
+    setValueColor('funding-rate', fundingRate);
+
+    let label;
+    if (fundingRate > 0.01) label = 'Longs pagan a shorts (sesgo alcista del mercado)';
+    else if (fundingRate < -0.01) label = 'Shorts pagan a longs (sesgo bajista del mercado)';
+    else label = 'Funding neutral';
+    setText('funding-rate-label', label);
+
+    // Premium Mark vs Index (mismo endpoint de Binance)
+    const markPrice = Number(data.markPrice);
+    const indexPrice = Number(data.indexPrice);
+    const premiumPct = ((markPrice - indexPrice) / indexPrice) * 100;
+    setText('premium-mark', premiumPct >= 0 ? '+' + premiumPct.toFixed(3) + '%' : premiumPct.toFixed(3) + '%');
+    setValueColor('premium-mark', premiumPct);
+  } catch (err) {
+    setText('funding-rate', 'No disponible');
+    setText('premium-mark', 'No disponible');
+    console.error('Binance Derivados:', err);
+  }
+
+  // Open Interest (Deribit)
+  try {
+    const res = await fetchWithTimeout('https://www.deribit.com/api/v2/public/get_book_summary_by_instrument?instrument_name=BTC-PERPETUAL', 8000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const oi = data.result[0].open_interest;
+    setText('open-interest', formatNum(oi, 0) + ' BTC');
+  } catch (err) {
+    setText('open-interest', 'No disponible');
+    console.error('Deribit OI:', err);
+  }
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
-  await Promise.all([loadBTCPrice(), loadCoinGeckoGlobal(), loadFearGreed()]);
+  await Promise.all([
+    safeRun(loadBTCPrice, 'loadBTCPrice'),
+    safeRun(loadCoinGeckoGlobal, 'loadCoinGeckoGlobal'),
+    safeRun(loadFearGreed, 'loadFearGreed'),
+    safeRun(loadDerivados, 'loadDerivados')
+  ]);
   setUpdateTime();
 }
 
