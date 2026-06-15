@@ -32,119 +32,161 @@
   </div>
 </section>
 
+<!-- PANEL DE RESUMEN: 4 LISTAS + GAUGE FEAR & GREED -->
+<section class="resumen-panel">
+
+  <!-- LISTA: CRIPTO -->
+  <div class="resumen-col">
+    <div class="resumen-titulo">⚡ Cripto</div>
+
+    <div class="resumen-fila fear-greed-fila">
+      <div class="fg-gauge-wrap">
+        <svg class="fg-gauge" viewBox="0 0 120 70" aria-hidden="true">
+          <path class="fg-gauge-track" d="M10,65 A50,50 0 0 1 110,65" />
+          <path class="fg-gauge-arc" id="fg-gauge-arc" d="M10,65 A50,50 0 0 1 110,65" />
+          <circle class="fg-gauge-needle" id="fg-gauge-needle" cx="60" cy="65" r="4" />
+        </svg>
+        <div class="fg-gauge-value" id="fear-greed">Cargando...</div>
+        <div class="fg-gauge-label" id="fear-greed-label"></div>
+      </div>
+      <div class="resumen-label">Fear &amp; Greed Index</div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Precio BTC/USD</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="btc-price">Cargando...</span>
+        <span class="card-sub" id="btc-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Dominancia BTC</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="btc-dominance">Cargando...</span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Market Cap Total (Cripto)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="market-cap-total">Cargando...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA: MACRO USA -->
+  <div class="resumen-col">
+    <div class="resumen-titulo">🌐 Macro USA</div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">S&amp;P 500 (SPX)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="spx">Cargando...</span>
+        <span class="card-sub" id="spx-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Nasdaq 100 (NDX)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="ndx">Cargando...</span>
+        <span class="card-sub" id="ndx-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Volatilidad (VIX)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="vix">Cargando...</span>
+        <span class="card-sub" id="vix-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Dólar Index (DXY)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="dxy">Cargando...</span>
+        <span class="card-sub" id="dxy-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Oro (XAU/USD)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="gold">Cargando...</span>
+        <span class="card-sub" id="gold-change"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Petróleo WTI</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="oil">Cargando...</span>
+        <span class="card-sub" id="oil-change"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA: YIELDS USA -->
+  <div class="resumen-col">
+    <div class="resumen-titulo">📈 Yields USA (Tesoro)</div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Bono 10 años (DGS10)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="yield10">Cargando...</span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Bono 2 años (DGS2)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="yield2">Cargando...</span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Spread 10-2 (recesión)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="spread102">Cargando...</span>
+        <span class="card-sub" id="spread102-label"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA: LIQUIDEZ GLOBAL -->
+  <div class="resumen-col">
+    <div class="resumen-titulo">💧 Liquidez Global (Fed)</div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Balance de la Fed (WALCL)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="walcl">Cargando...</span>
+        <span class="card-sub" id="walcl-date"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Oferta Monetaria M2</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="m2">Cargando...</span>
+        <span class="card-sub" id="m2-date"></span>
+      </div>
+    </div>
+
+    <div class="resumen-fila">
+      <div class="resumen-label">Reservas Bancarias (WRESBAL)</div>
+      <div class="resumen-valor">
+        <span class="card-value" id="wresbal">Cargando...</span>
+        <span class="card-sub" id="wresbal-date"></span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
 <main class="grid">
-
-  <!-- BLOQUE CRIPTO -->
-  <div class="card card-section-title">
-    <div class="section-label">⚡ Cripto</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Precio BTC/USD</div>
-    <div class="card-value" id="btc-price">Cargando...</div>
-    <div class="card-sub" id="btc-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Dominancia BTC</div>
-    <div class="card-value" id="btc-dominance">Cargando...</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Market Cap Total (Cripto)</div>
-    <div class="card-value" id="market-cap-total">Cargando...</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Fear &amp; Greed Index</div>
-    <div class="card-value" id="fear-greed">Cargando...</div>
-    <div class="card-sub" id="fear-greed-label"></div>
-  </div>
-
-  <!-- BLOQUE MACRO USA -->
-  <div class="card card-section-title">
-    <div class="section-label">🌐 Macro USA</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">S&amp;P 500 (SPX)</div>
-    <div class="card-value" id="spx">Cargando...</div>
-    <div class="card-sub" id="spx-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Nasdaq 100 (NDX)</div>
-    <div class="card-value" id="ndx">Cargando...</div>
-    <div class="card-sub" id="ndx-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Volatilidad (VIX)</div>
-    <div class="card-value" id="vix">Cargando...</div>
-    <div class="card-sub" id="vix-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Dólar Index (DXY)</div>
-    <div class="card-value" id="dxy">Cargando...</div>
-    <div class="card-sub" id="dxy-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Oro (XAU/USD)</div>
-    <div class="card-value" id="gold">Cargando...</div>
-    <div class="card-sub" id="gold-change"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Petróleo WTI</div>
-    <div class="card-value" id="oil">Cargando...</div>
-    <div class="card-sub" id="oil-change"></div>
-  </div>
-
-  <!-- BLOQUE YIELDS USA -->
-  <div class="card card-section-title">
-    <div class="section-label">📈 Yields USA (Tesoro)</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Bono 10 años (DGS10)</div>
-    <div class="card-value" id="yield10">Cargando...</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Bono 2 años (DGS2)</div>
-    <div class="card-value" id="yield2">Cargando...</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Spread 10-2 (recesión)</div>
-    <div class="card-value" id="spread102">Cargando...</div>
-    <div class="card-sub" id="spread102-label"></div>
-  </div>
-
-  <!-- BLOQUE LIQUIDEZ GLOBAL -->
-  <div class="card card-section-title">
-    <div class="section-label">💧 Liquidez Global (Fed)</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Balance de la Fed (WALCL)</div>
-    <div class="card-value" id="walcl">Cargando...</div>
-    <div class="card-sub" id="walcl-date"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Oferta Monetaria M2</div>
-    <div class="card-value" id="m2">Cargando...</div>
-    <div class="card-sub" id="m2-date"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Reservas Bancarias (WRESBAL)</div>
-    <div class="card-value" id="wresbal">Cargando...</div>
-    <div class="card-sub" id="wresbal-date"></div>
-  </div>
 
   <!-- BLOQUE CALENDARIO ECONOMICO -->
   <div class="card card-section-title">
@@ -350,5 +392,51 @@
 </main>
 
 <script src="js/main.js"></script>
+<script>
+// Capa puramente visual: sincroniza el gauge de Fear & Greed con el texto
+// que escribe main.js en #fear-greed, sin modificar su lógica.
+(function () {
+  const valorEl = document.getElementById('fear-greed');
+  const arc = document.getElementById('fg-gauge-arc');
+  const needle = document.getElementById('fg-gauge-needle');
+  if (!valorEl || !arc || !needle) return;
+
+  const ARC_LENGTH = 157; // longitud aproximada del path semicircular (r=50)
+  const CX = 60, CY = 65, R = 50;
+
+  function actualizarGauge() {
+    const texto = valorEl.textContent || '';
+    const match = texto.match(/(\d+)\s*\/\s*100/);
+    if (!match) return;
+
+    const valor = Math.max(0, Math.min(100, Number(match[1])));
+    const fraccion = valor / 100;
+
+    // Dibuja el arco proporcional al valor (0 a 100 -> 0 a ARC_LENGTH)
+    arc.style.strokeDasharray = ARC_LENGTH;
+    arc.style.strokeDashoffset = ARC_LENGTH - (ARC_LENGTH * fraccion);
+
+    // Posiciona la aguja sobre el semicírculo (180° = izquierda, 0° = derecha)
+    const angulo = Math.PI - (fraccion * Math.PI);
+    const x = CX + R * Math.cos(angulo);
+    const y = CY - R * Math.sin(angulo);
+    needle.setAttribute('cx', x.toFixed(2));
+    needle.setAttribute('cy', y.toFixed(2));
+
+    // Color del arco según rango (mismo criterio que setValueColor en main.js)
+    arc.classList.remove('fg-up', 'fg-down', 'fg-neutral');
+    if (valor >= 56) arc.classList.add('fg-up');
+    else if (valor <= 45) arc.classList.add('fg-down');
+    else arc.classList.add('fg-neutral');
+  }
+
+  // Observa cambios de texto que main.js hace vía setText()
+  const observer = new MutationObserver(actualizarGauge);
+  observer.observe(valorEl, { childList: true, characterData: true, subtree: true });
+
+  // Intento inicial (por si el valor ya está disponible)
+  actualizarGauge();
+})();
+</script>
 </body>
 </html>
