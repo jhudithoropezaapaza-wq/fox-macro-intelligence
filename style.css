@@ -59,7 +59,8 @@ body {
   border-radius: 8px;
   padding: 14px 20px;
   text-align: center;
-  min-width: 180px;
+  min-width: 220px;
+  max-width: 280px;
 }
 
 .sesgo-label {
@@ -71,9 +72,17 @@ body {
 
 .sesgo-value {
   display: block;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-muted);
+}
+
+.sesgo-detalle {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 .grid {
