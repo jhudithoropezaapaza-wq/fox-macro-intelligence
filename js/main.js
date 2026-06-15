@@ -26,7 +26,12 @@ const FOX = {
   yield10: null,
   yield2: null,
   walclPrev: null,
-  walclCurr: null
+  walclCurr: null,
+  fearGreed: null,
+  fundingRate: null,
+  longShortRatio: null,
+  btcDominance: null,
+  btcDominancePrev: null
 };
 
 function formatUSD(num, decimals = 0) {
@@ -45,7 +50,8 @@ function setText(id, text) {
 function setValueColor(valueId, change) {
   const el = document.getElementById(valueId);
   if (!el) return;
-  el.className = 'card-value';
+  // Quita colores previos sin pisar la clase base (card-value, sesgo-value, etc.)
+  el.classList.remove('value-up', 'value-down', 'value-neutral');
   if (change > 0) el.classList.add('value-up');
   else if (change < 0) el.classList.add('value-down');
   else el.classList.add('value-neutral');
@@ -88,6 +94,13 @@ async function loadCoinGeckoGlobal() {
     setText('btc-dominance', data.data.market_cap_percentage.btc.toFixed(2) + '%');
     setText('market-cap-total', formatUSD(data.data.total_market_cap.usd));
 
+    // Guardamos la dominancia actual y la comparamos con la del ciclo anterior (localStorage)
+    const dominanceNow = data.data.market_cap_percentage.btc;
+    FOX.btcDominance = dominanceNow;
+    const dominancePrevStored = localStorage.getItem('fox_btc_dominance_prev');
+    FOX.btcDominancePrev = dominancePrevStored !== null ? Number(dominancePrevStored) : dominanceNow;
+    localStorage.setItem('fox_btc_dominance_prev', String(dominanceNow));
+
     // Mercado Cripto Amplio
     const mcapChange = data.data.market_cap_change_percentage_24h_usd;
     setText('mcap-change', (mcapChange >= 0 ? '+' : '') + mcapChange.toFixed(2) + '%');
@@ -113,6 +126,7 @@ async function loadFearGreed() {
     setText('fear-greed', value + ' / 100');
     setText('fear-greed-label', label);
     setValueColor('fear-greed', value >= 56 ? 1 : value <= 45 ? -1 : 0);
+    FOX.fearGreed = value;
   } catch (err) {
     setText('fear-greed', 'No disponible');
     console.error('Fear & Greed:', err);
@@ -346,6 +360,7 @@ async function loadDerivados() {
     else if (fundingRate < -0.01) label = 'Shorts pagan a longs (sesgo bajista del mercado)';
     else label = 'Funding neutral';
     setText('funding-rate-label', label);
+    FOX.fundingRate = fundingRate;
 
     // Premium Mark vs Index (mismo endpoint de Binance)
     const markPrice = Number(data.markPrice);
@@ -395,6 +410,7 @@ async function loadDerivados() {
     else if (ratio < 0.7) label = 'Mayoría apostando a la baja (posible sobreventa)';
     else label = 'Posicionamiento equilibrado';
     setText('long-short-label', label);
+    FOX.longShortRatio = ratio;
   } catch (err) {
     setText('long-short-ratio', 'No disponible');
     setText('long-pct', 'No disponible');
@@ -594,6 +610,110 @@ function calcularIndicadoresCompuestos() {
   }
 }
 
+// ─── MOTOR DE SESGOS (Módulo 14) ───────────────────────────────────────────
+
+// Convierte una puntuación numérica en texto + clase de color
+function interpretarSesgo(score, etiquetas) {
+  // etiquetas = { up: 'Alcista', down: 'Bajista', neutral: 'Neutral' }
+  if (score > 0) return { texto: etiquetas.up, color: 1 };
+  if (score < 0) return { texto: etiquetas.down, color: -1 };
+  return { texto: etiquetas.neutral, color: 0 };
+}
+
+function calcularSesgos() {
+  // ── Sesgo BTC Hoy ──────────────────────────────────────────────────────
+  // Factores: Fear & Greed, Funding Rate, Long/Short Ratio, BTC vs Nasdaq (hoy)
+  let scoreHoy = 0;
+  let factoresHoy = [];
+
+  if (FOX.fearGreed !== null) {
+    if (FOX.fearGreed >= 56) { scoreHoy += 1; factoresHoy.push('F&G alto'); }
+    else if (FOX.fearGreed <= 45) { scoreHoy -= 1; factoresHoy.push('F&G bajo'); }
+    else { factoresHoy.push('F&G neutral'); }
+  }
+
+  if (FOX.fundingRate !== null) {
+    if (FOX.fundingRate > 0.01) { scoreHoy += 1; factoresHoy.push('Funding +'); }
+    else if (FOX.fundingRate < -0.01) { scoreHoy -= 1; factoresHoy.push('Funding -'); }
+    else { factoresHoy.push('Funding neutral'); }
+  }
+
+  if (FOX.longShortRatio !== null) {
+    if (FOX.longShortRatio > 1.5) { scoreHoy -= 1; factoresHoy.push('L/S sobrecompra'); } // contrarian
+    else if (FOX.longShortRatio < 0.7) { scoreHoy += 1; factoresHoy.push('L/S sobreventa'); }
+    else { factoresHoy.push('L/S equilibrado'); }
+  }
+
+  if (FOX.btcChange !== null && FOX.ndxChange !== null) {
+    if (FOX.btcChange >= 0) { scoreHoy += 1; factoresHoy.push('BTC verde hoy'); }
+    else { scoreHoy -= 1; factoresHoy.push('BTC rojo hoy'); }
+  }
+
+  const sesgoHoy = interpretarSesgo(scoreHoy, { up: 'Alcista', down: 'Bajista', neutral: 'Neutral' });
+  setText('sesgo-hoy', sesgoHoy.texto);
+  setText('sesgo-hoy-detalle', factoresHoy.join(' · '));
+  setValueColor('sesgo-hoy', sesgoHoy.color);
+
+  // ── Sesgo 1-5 Días ─────────────────────────────────────────────────────
+  // Factores: Risk-On/Off, Spread 10-2, tendencia de Dominancia BTC
+  let score5d = 0;
+  let factores5d = [];
+
+  if (FOX.vixChange !== null && FOX.dxyChange !== null && FOX.goldChange !== null) {
+    const senales = [FOX.vixChange, FOX.dxyChange, FOX.goldChange];
+    const positivas = senales.filter(s => s > 0).length;
+    const negativas = senales.filter(s => s < 0).length;
+    if (negativas >= 2) { score5d += 1; factores5d.push('Risk-On'); }
+    else if (positivas >= 2) { score5d -= 1; factores5d.push('Risk-Off'); }
+    else { factores5d.push('Risk mixto'); }
+  }
+
+  if (FOX.yield10 !== null && FOX.yield2 !== null) {
+    const spread = FOX.yield10 - FOX.yield2;
+    if (spread >= 0) { score5d += 1; factores5d.push('Curva normal'); }
+    else { score5d -= 1; factores5d.push('Curva invertida'); }
+  }
+
+  if (FOX.btcDominance !== null && FOX.btcDominancePrev !== null) {
+    const domDiff = FOX.btcDominance - FOX.btcDominancePrev;
+    if (domDiff > 0.01) { factores5d.push('Dominancia ↑ (rotación hacia BTC)'); score5d += 1; }
+    else if (domDiff < -0.01) { factores5d.push('Dominancia ↓ (rotación hacia altcoins)'); score5d -= 0; }
+    else { factores5d.push('Dominancia estable'); }
+  }
+
+  const sesgoMedio = interpretarSesgo(score5d, { up: 'Alcista', down: 'Bajista', neutral: 'Neutral' });
+  setText('sesgo-medio', sesgoMedio.texto);
+  setText('sesgo-medio-detalle', factores5d.join(' · '));
+  setValueColor('sesgo-medio', sesgoMedio.color);
+
+  // ── Flujo de Liquidez ──────────────────────────────────────────────────
+  // Factor: tendencia WALCL + spread 10-2 (reutiliza la misma lógica del indicador compuesto)
+  let scoreLiq = 0;
+  let factoresLiq = [];
+
+  if (FOX.walclCurr !== null && FOX.walclPrev !== null) {
+    const walclTrend = FOX.walclCurr - FOX.walclPrev;
+    if (walclTrend > 0) { scoreLiq += 1; factoresLiq.push('Balance Fed ↑'); }
+    else if (walclTrend < 0) { scoreLiq -= 1; factoresLiq.push('Balance Fed ↓'); }
+    else { factoresLiq.push('Balance Fed estable'); }
+  }
+
+  if (FOX.yield10 !== null && FOX.yield2 !== null) {
+    const spread = FOX.yield10 - FOX.yield2;
+    if (spread >= 0) { scoreLiq += 1; factoresLiq.push('Curva normal'); }
+    else { scoreLiq -= 1; factoresLiq.push('Curva invertida'); }
+  }
+
+  const sesgoLiquidez = interpretarSesgo(scoreLiq, {
+    up: 'Liquidez expandiéndose',
+    down: 'Liquidez contrayéndose',
+    neutral: 'Liquidez estable'
+  });
+  setText('sesgo-liquidez', sesgoLiquidez.texto);
+  setText('sesgo-liquidez-detalle', factoresLiq.join(' · '));
+  setValueColor('sesgo-liquidez', sesgoLiquidez.color);
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -630,6 +750,7 @@ async function initMacro() {
 async function init() {
   await Promise.all([initCripto(), initMacro()]);
   calcularIndicadoresCompuestos();
+  calcularSesgos();
 }
 
 // Primera carga
@@ -639,10 +760,12 @@ init();
 setInterval(async () => {
   await initCripto();
   calcularIndicadoresCompuestos();
+  calcularSesgos();
 }, 2 * 60 * 1000);
 
 // Macro USA: actualiza cada 15 minutos
 setInterval(async () => {
   await initMacro();
   calcularIndicadoresCompuestos();
+  calcularSesgos();
 }, 15 * 60 * 1000);
