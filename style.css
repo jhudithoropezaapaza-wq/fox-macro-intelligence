@@ -279,3 +279,160 @@ body {
 .lista-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+
+/* ===== PANEL RESUMEN: 4 LISTAS (Cripto / Macro / Yields / Liquidez) ===== */
+.resumen-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-width: 1200px;
+  margin: 0 auto 24px auto;
+}
+
+.resumen-col {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.resumen-titulo {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+.resumen-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.resumen-fila:last-child {
+  border-bottom: none;
+}
+
+.resumen-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.resumen-valor {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resumen-valor .card-value {
+  font-size: 19px;
+}
+
+/* ===== GAUGE FEAR & GREED (estilo Binance "Miedo y codicia") ===== */
+.fear-greed-fila {
+  align-items: center;
+  text-align: center;
+}
+
+.fg-gauge-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 180px;
+  margin: 0 auto;
+}
+
+.fg-gauge {
+  width: 100%;
+  display: block;
+}
+
+.fg-gauge-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.fg-gauge-arc {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 157;
+  stroke-dashoffset: 157;
+  transition: stroke-dashoffset 0.6s ease, stroke 0.6s ease;
+}
+
+.fg-gauge-arc.fg-up {
+  stroke: var(--green);
+}
+
+.fg-gauge-arc.fg-down {
+  stroke: var(--red);
+}
+
+.fg-gauge-arc.fg-neutral {
+  stroke: var(--orange);
+}
+
+.fg-gauge-needle {
+  fill: var(--text);
+  stroke: var(--bg-card);
+  stroke-width: 1.5;
+  transition: cx 0.6s ease, cy 0.6s ease;
+}
+
+.fg-gauge-value {
+  margin-top: -22px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fg-gauge-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+/* ===== RESPONSIVE: SCROLL HORIZONTAL EN MÓVIL ===== */
+@media (max-width: 900px) {
+  .resumen-panel {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 82%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .resumen-col {
+    scroll-snap-align: start;
+  }
+
+  .resumen-panel::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .resumen-panel::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+}
