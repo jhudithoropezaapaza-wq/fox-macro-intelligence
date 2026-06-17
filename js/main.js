@@ -714,6 +714,130 @@ function calcularSesgos() {
   setValueColor('sesgo-liquidez', sesgoLiquidez.color);
 }
 
+// ─── FILTRO MACRO → PHI ────────────────────────────────────────────────────
+
+function calcularFiltroPHI() {
+  let puntosLong = 0;
+  let puntosShort = 0;
+
+  // Factor 1: Risk-On / Risk-Off
+  if (FOX.vixChange !== null && FOX.dxyChange !== null && FOX.goldChange !== null) {
+    const senales = [FOX.vixChange, FOX.dxyChange, FOX.goldChange];
+    const positivas = senales.filter(s => s > 0).length;
+    const negativas = senales.filter(s => s < 0).length;
+    if (negativas >= 2) {
+      puntosLong++;
+      setPhiFactor('phi-risk', 'Risk-On ✓', 'value-up');
+    } else if (positivas >= 2) {
+      puntosShort++;
+      setPhiFactor('phi-risk', 'Risk-Off ✗', 'value-down');
+    } else {
+      setPhiFactor('phi-risk', 'Mixto', 'value-neutral');
+    }
+  }
+
+  // Factor 2: Sesgo BTC Hoy (resultado del motor de sesgos)
+  const sesgoHoyEl = document.getElementById('sesgo-hoy');
+  if (sesgoHoyEl) {
+    const seshoTexto = sesgoHoyEl.textContent;
+    if (seshoTexto === 'Alcista') {
+      puntosLong++;
+      setPhiFactor('phi-sesgo-hoy', 'Alcista ✓', 'value-up');
+    } else if (seshoTexto === 'Bajista') {
+      puntosShort++;
+      setPhiFactor('phi-sesgo-hoy', 'Bajista ✗', 'value-down');
+    } else {
+      setPhiFactor('phi-sesgo-hoy', 'Neutral', 'value-neutral');
+    }
+  }
+
+  // Factor 3: Funding Rate
+  if (FOX.fundingRate !== null) {
+    if (FOX.fundingRate > 0.05) {
+      puntosShort++;
+      setPhiFactor('phi-funding', FOX.fundingRate.toFixed(4) + '% ⚠️', 'value-down');
+    } else if (FOX.fundingRate > 0.01) {
+      puntosLong++;
+      setPhiFactor('phi-funding', FOX.fundingRate.toFixed(4) + '% ✓', 'value-up');
+    } else if (FOX.fundingRate < -0.01) {
+      puntosShort++;
+      setPhiFactor('phi-funding', FOX.fundingRate.toFixed(4) + '% ✗', 'value-down');
+    } else {
+      setPhiFactor('phi-funding', FOX.fundingRate.toFixed(4) + '% ~', 'value-neutral');
+    }
+  }
+
+  // Factor 4: Long/Short Ratio (contrarian: extremo = señal opuesta)
+  if (FOX.longShortRatio !== null) {
+    if (FOX.longShortRatio > 1.5) {
+      puntosShort++;
+      setPhiFactor('phi-ls', FOX.longShortRatio.toFixed(2) + ' ⚠️', 'value-down');
+    } else if (FOX.longShortRatio < 0.7) {
+      puntosLong++;
+      setPhiFactor('phi-ls', FOX.longShortRatio.toFixed(2) + ' ⚠️', 'value-up');
+    } else if (FOX.longShortRatio >= 1.0) {
+      puntosLong += 0.5;
+      setPhiFactor('phi-ls', FOX.longShortRatio.toFixed(2) + ' ~', 'value-neutral');
+    } else {
+      setPhiFactor('phi-ls', FOX.longShortRatio.toFixed(2) + ' ~', 'value-neutral');
+    }
+  }
+
+  // Factor 5: Liquidez Global (WALCL tendencia + spread)
+  if (FOX.walclCurr !== null && FOX.yield10 !== null) {
+    const walclTrend = FOX.walclCurr - (FOX.walclPrev || FOX.walclCurr);
+    const spread = FOX.yield10 - (FOX.yield2 || FOX.yield10);
+    if (walclTrend > 0 && spread >= 0) {
+      puntosLong++;
+      setPhiFactor('phi-liquidez', 'Expansión ✓', 'value-up');
+    } else if (walclTrend < 0 && spread < 0) {
+      puntosShort++;
+      setPhiFactor('phi-liquidez', 'Contracción ✗', 'value-down');
+    } else {
+      setPhiFactor('phi-liquidez', 'Mixta', 'value-neutral');
+    }
+  }
+
+  // Veredicto final
+  const total = puntosLong + puntosShort;
+  const veredictoEl = document.getElementById('phi-veredicto');
+  const notaEl = document.getElementById('phi-nota');
+
+  veredictoEl.className = 'filtro-phi-veredicto';
+
+  if (total === 0) {
+    veredictoEl.textContent = 'Calculando...';
+    return;
+  }
+
+  const dominanciaLong = puntosLong / (puntosLong + puntosShort + 0.001);
+
+  if (dominanciaLong >= 0.7) {
+    veredictoEl.textContent = '✅ MACRO FAVORABLE LONG';
+    veredictoEl.classList.add('phi-long');
+    notaEl.textContent = 'El contexto macro refuerza señales ALCISTAS del Panel PHI. ' + puntosLong.toFixed(0) + ' factores a favor / ' + puntosShort.toFixed(0) + ' en contra. Buscar entradas LONG cuando el Panel PHI confirme ALCISTA o BUY NOW.';
+  } else if (dominanciaLong <= 0.3) {
+    veredictoEl.textContent = '🔴 MACRO FAVORABLE SHORT';
+    veredictoEl.classList.add('phi-short');
+    notaEl.textContent = 'El contexto macro refuerza señales BAJISTAS del Panel PHI. ' + puntosShort.toFixed(0) + ' factores en contra / ' + puntosLong.toFixed(0) + ' a favor. Buscar entradas SHORT cuando el Panel PHI confirme BAJISTA o SELL NOW.';
+  } else if (puntosLong > 0 && puntosShort > 0 && Math.abs(puntosLong - puntosShort) <= 1) {
+    veredictoEl.textContent = '⚠️ MACRO CONTRADICTORIA';
+    veredictoEl.classList.add('phi-peligro');
+    notaEl.textContent = 'Los factores macro están divididos (' + puntosLong.toFixed(0) + ' Long / ' + puntosShort.toFixed(0) + ' Short). Precaución: aunque el Panel PHI habilite una entrada, el contexto macro no la refuerza. Reducir tamaño de posición o esperar mayor claridad.';
+  } else {
+    veredictoEl.textContent = '🟡 MACRO NEUTRAL';
+    veredictoEl.classList.add('phi-neutro');
+    notaEl.textContent = 'Sin señal macro dominante. Operar exclusivamente por el Panel PHI, sin sesgo adicional del contexto macro.';
+  }
+}
+
+function setPhiFactor(id, texto, clase) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = texto;
+  el.className = 'phi-factor-valor ' + clase;
+}
+
 // ─── INICIALIZACIÓN ────────────────────────────────────────────────────────
 
 async function initCripto() {
@@ -751,6 +875,7 @@ async function init() {
   await Promise.all([initCripto(), initMacro()]);
   calcularIndicadoresCompuestos();
   calcularSesgos();
+  calcularFiltroPHI();
 }
 
 // Primera carga
@@ -761,6 +886,7 @@ setInterval(async () => {
   await initCripto();
   calcularIndicadoresCompuestos();
   calcularSesgos();
+  calcularFiltroPHI();
 }, 2 * 60 * 1000);
 
 // Macro USA: actualiza cada 15 minutos
@@ -768,4 +894,5 @@ setInterval(async () => {
   await initMacro();
   calcularIndicadoresCompuestos();
   calcularSesgos();
+  calcularFiltroPHI();
 }, 15 * 60 * 1000);
