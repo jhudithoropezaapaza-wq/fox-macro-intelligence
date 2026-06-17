@@ -123,12 +123,52 @@ async function loadFearGreed() {
     const data = await res.json();
     const value = Number(data.data[0].value);
     const label = data.data[0].value_classification;
+
+    // Actualizar texto oculto (para el motor de sesgos)
     setText('fear-greed', value + ' / 100');
-    setText('fear-greed-label', label);
-    setValueColor('fear-greed', value >= 56 ? 1 : value <= 45 ? -1 : 0);
     FOX.fearGreed = value;
+
+    // Etiqueta
+    const labelEl = document.getElementById('fear-greed-label');
+    if (labelEl) labelEl.textContent = label;
+
+    // Color según valor
+    let color;
+    if (value >= 75) color = '#39D353';       // Extreme Greed
+    else if (value >= 56) color = '#8BC34A';  // Greed
+    else if (value >= 45) color = '#E3B341';  // Neutral
+    else if (value >= 25) color = '#FF9800';  // Fear
+    else color = '#FF6B6B';                   // Extreme Fear
+
+    // Gauge: el arco total es ~251.2px (semicírculo)
+    const totalArc = 251.2;
+    const offset = totalArc - (value / 100) * totalArc;
+    const arc = document.getElementById('fg-arc');
+    if (arc) {
+      arc.setAttribute('stroke', color);
+      arc.setAttribute('stroke-dashoffset', offset.toString());
+    }
+
+    // Aguja: -90° (izq) a +90° (der), mapeado a 0-100
+    const angle = -90 + (value / 100) * 180;
+    const rad = (angle * Math.PI) / 180;
+    const x2 = 100 + 62 * Math.sin(rad);
+    const y2 = 100 - 62 * Math.cos(rad);
+    const needle = document.getElementById('fg-needle');
+    if (needle) {
+      needle.setAttribute('x2', x2.toFixed(1));
+      needle.setAttribute('y2', y2.toFixed(1));
+      needle.setAttribute('stroke', color);
+    }
+
+    // Valor en el SVG
+    const valText = document.getElementById('fg-value-text');
+    if (valText) {
+      valText.textContent = value;
+      valText.setAttribute('fill', color);
+    }
   } catch (err) {
-    setText('fear-greed', 'No disponible');
+    setText('fear-greed-label', 'No disponible');
     console.error('Fear & Greed:', err);
   }
 }
